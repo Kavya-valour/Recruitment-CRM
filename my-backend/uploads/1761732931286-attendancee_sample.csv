@@ -1,0 +1,3 @@
+employee_id,date,status,in_time,out_time
+EMP001,2025-10-14,Present,09:00 AM,06:00 PM
+EMP111,2025-10-14,Absent,,

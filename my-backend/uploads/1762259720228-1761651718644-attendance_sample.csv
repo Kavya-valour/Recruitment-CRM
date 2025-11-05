@@ -1,0 +1,4 @@
+employee_id,date,status,in_time,out_time
+64ee4331d9def889af38096a,2025-10-14,Present,09:00 AM,06:00 PM
+64ee4331d9def889af38097b,2025-10-14,Absent,,
+64ee4331d9def889af38098c,2025-10-14,Leave,,
