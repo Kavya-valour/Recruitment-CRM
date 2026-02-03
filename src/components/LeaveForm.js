@@ -14,7 +14,7 @@ const LeaveSchema = Yup.object().shape({
   reason: Yup.string(),
 });
 
-const LeaveForm = () => {
+const LeaveForm = ({ initialLeaveType = "Casual", onApplied }) => {
   const { addLeave, getLeaves } = useContext(LeaveContext);
   const [employees, setEmployees] = useState([]);
 
@@ -32,7 +32,7 @@ const LeaveForm = () => {
       <Formik
         initialValues={{
           employeeId: "",
-          leaveType: "Casual",
+          leaveType: initialLeaveType,
           fromDate: "",
           toDate: "",
           reason: "",
@@ -50,8 +50,11 @@ const LeaveForm = () => {
             });
             resetForm();
             getLeaves(); // refresh list
+            if (onApplied) onApplied();
+            alert("✅ Leave applied successfully");
           } catch (err) {
             console.error(err);
+            alert(err?.response?.data?.message || "❌ Failed to apply leave");
           } finally {
             setSubmitting(false);
           }
@@ -64,8 +67,8 @@ const LeaveForm = () => {
               <Field as="select" name="employeeId" className="mt-1 block w-full border px-2 py-1 rounded">
                 <option value="">-- Select Employee --</option>
                 {employees.map((emp) => (
-                  <option key={emp._id} value={emp._id}>
-                    {emp.name}
+                  <option key={emp._id} value={emp.employee_id}>
+                    {emp.name} ({emp.employee_id})
                   </option>
                 ))}
               </Field>

@@ -42,6 +42,28 @@ export const getAttendanceRecords = async () => {
   }
 };
 
+// ---------------- Get Attendance by Employee and Date ----------------
+export const getAttendanceByEmployeeDate = async (employeeId, date) => {
+  try {
+    const response = await api.get("/attendance", { params: { employeeId, date } });
+    return response.data; // array of matching records
+  } catch (error) {
+    console.error("Failed to fetch attendance by employee/date:", error);
+    throw error;
+  }
+};
+
+// ---------------- Update Attendance ----------------
+export const updateAttendance = async (id, attendanceData) => {
+  try {
+    const response = await api.put(`/attendance/${id}`, attendanceData);
+    return response.data;
+  } catch (error) {
+    console.error("Update attendance failed:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 // ---------------- Delete Attendance Record (optional) ----------------
 export const deleteAttendance = async (id) => {
   try {

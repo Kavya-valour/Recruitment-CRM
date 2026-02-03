@@ -34,14 +34,17 @@ const AttendanceTable = ({ records = [], reload }) => {
       const res = await uploadCsv(file);
       if (res.error) {
         setUploadResult({ error: res.error });
+        alert(res.error || "❌ Attendance upload failed");
       } else {
         setUploadResult({ created: res.created });
         setSuccessMsg(`✅ ${res.created} attendance records uploaded successfully!`);
+        alert(`✅ ${res.created} attendance records uploaded successfully!`);
       }
       reload();
     } catch (err) {
       console.error("CSV upload failed:", err);
       setUploadResult({ error: "Upload failed, please check your file." });
+      alert("❌ Upload failed, please check your file.");
     } finally {
       setUploading(false);
       fileRef.current.value = "";
@@ -70,12 +73,14 @@ const AttendanceTable = ({ records = [], reload }) => {
       });
 
       setSuccessMsg("✅ Attendance added successfully!");
+      alert("✅ Attendance added successfully!");
       setManual({ employeeId: "", status: "Present", date: "", inTime: "", outTime: "" });
       reload();
     } catch (err) {
       console.error(err);
       const errorMsg = err.response?.data?.error || "Failed to add attendance.";
       setManualError(`❌ ${errorMsg}`);
+      alert(`❌ ${errorMsg}`);
     } finally {
       setSaving(false);
     }

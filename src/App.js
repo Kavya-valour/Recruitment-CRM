@@ -1,9 +1,11 @@
 // src/App.js
 import React, { useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
@@ -12,12 +14,15 @@ import Leaves from "./pages/Leaves";
 import Payroll from "./pages/Payroll";
 import OfferLetters from "./pages/OfferLetters";
 import Login from "./pages/Login";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+import EmployeeAttendance from "./pages/EmployeeAttendance";
+
 import { AuthContext } from "./context/AuthContext";
 
 const App = () => {
   const { user } = useContext(AuthContext);
 
-  // Authenticated layout (Dashboard + Sidebar + Navbar)
+  /* ---------- AUTHENTICATED LAYOUT ---------- */
   const AuthenticatedLayout = ({ children }) => (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
@@ -31,79 +36,120 @@ const App = () => {
 
   return (
     <Routes>
-      {/* Default route */}
+      {/* ---------- ROOT ---------- */}
       <Route
         path="/"
         element={
-          user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+          user ? (
+            user.role === "employee" ? (
+              <Navigate to="/employee-dashboard" />
+            ) : (
+              <Navigate to="/dashboard" />
+            )
+          ) : (
+            <Navigate to="/login" />
+          )
         }
       />
 
-      {/* ✅ Add Login Route */}
+      {/* ---------- LOGIN ---------- */}
       <Route
         path="/login"
-        element={user ? <Navigate to="/dashboard" /> : <Login />}
+        element={user ? <Navigate to="/" /> : <Login />}
       />
 
-      {/* Protected routes */}
-      {user ? (
-        <>
-          <Route
-            path="/dashboard"
-            element={
-              <AuthenticatedLayout>
-                <Dashboard />
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/employees"
-            element={
-              <AuthenticatedLayout>
-                <Employees />
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/attendance"
-            element={
-              <AuthenticatedLayout>
-                <Attendance />
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/leaves"
-            element={
-              <AuthenticatedLayout>
-                <Leaves />
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/payroll"
-            element={
-              <AuthenticatedLayout>
-                <Payroll />
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/offerletters"
-            element={
-              <AuthenticatedLayout>
-                <OfferLetters />
-              </AuthenticatedLayout>
-            }
-          />
-        </>
-      ) : (
-        <Route path="*" element={<Navigate to="/login" />} />
-      )}
+      {/* ---------- EMPLOYEE ROUTES ---------- */}
+      <Route
+        path="/employee-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeeDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/employee-attendance"
+        element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <AuthenticatedLayout>
+              <EmployeeAttendance />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ---------- HR + ADMIN ROUTES ---------- */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={["hr", "admin"]}>
+            <AuthenticatedLayout>
+              <Dashboard />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/employees"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AuthenticatedLayout>
+              <Employees />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute allowedRoles={["hr", "admin"]}>
+            <AuthenticatedLayout>
+              <Attendance />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/leaves"
+        element={
+          <ProtectedRoute allowedRoles={["hr", "admin"]}>
+            <AuthenticatedLayout>
+              <Leaves />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/payroll"
+        element={
+          <ProtectedRoute allowedRoles={["hr", "admin"]}>
+            <AuthenticatedLayout>
+              <Payroll />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/offerletters"
+        element={
+          <ProtectedRoute allowedRoles={["hr", "admin"]}>
+            <AuthenticatedLayout>
+              <OfferLetters />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ---------- FALLBACK ---------- */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };
 
 export default App;
-
-

@@ -25,7 +25,8 @@ export const EmployeeProvider = ({ children }) => {
       const newEmp = await employeeService.addEmployee(employeeData);
       setEmployees((prev) => [...prev, newEmp]);
     } catch (error) {
-      console.error("Error adding employee:", error);
+      console.error("Error adding employee:", error?.response?.data || error);
+      throw error;
     }
   };
 
@@ -33,8 +34,10 @@ export const EmployeeProvider = ({ children }) => {
     try {
       const updated = await employeeService.updateEmployee(id, employeeData);
       setEmployees((prev) => prev.map((emp) => (emp._id === id ? updated : emp)));
+      return updated;
     } catch (error) {
       console.error("Error updating employee:", error);
+      throw error;
     }
   };
 
@@ -43,7 +46,8 @@ export const EmployeeProvider = ({ children }) => {
       await employeeService.deleteEmployee(id);
       setEmployees((prev) => prev.filter((emp) => emp._id !== id));
     } catch (error) {
-      console.error("Error deleting employee:", error);
+      console.error("Error deleting employee:", error?.response?.data || error);
+      throw error;
     }
   };
 

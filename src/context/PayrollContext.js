@@ -7,13 +7,23 @@ export const PayrollProvider = ({ children }) => {
   const [payrolls, setPayrolls] = useState([]);
 
   const getPayrolls = async () => {
-    const data = await payrollService.getAllPayrolls();
-    setPayrolls(data);
+    try {
+      const data = await payrollService.getAllPayrolls();
+      setPayrolls(data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const addPayroll = async (record) => {
-    const newRec = await payrollService.addPayroll(record);
-    setPayrolls([...payrolls, newRec]);
+    try {
+      const newRec = await payrollService.addPayroll(record);
+      setPayrolls((prev) => [...prev, newRec]);
+      return newRec;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   };
 
   return (

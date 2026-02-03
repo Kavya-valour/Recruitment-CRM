@@ -8,40 +8,25 @@ const Payroll = () => {
 
   useEffect(() => {
     getPayrolls();
-  }, []);
-
-  // ✅ Download PDF directly when clicking "View Payslip"
-  const handleViewPayslip = async (id) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/payroll/${id}/payslip`);
-      if (!response.ok) throw new Error("PDF download failed");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Payslip.pdf";
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading payslip:", error);
-      alert("Could not download payslip");
-    }
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Payroll Management</h1>
+
+      {/* Generate payroll form */}
       <SalaryUpdateForm />
 
+      {/* Payroll records */}
       <div className="mt-6 grid gap-4">
         {payrolls.length > 0 ? (
           payrolls.map((p) => (
             <div key={p._id} className="p-4 border rounded-lg shadow">
-              <p><strong>Employee ID:</strong> {p.employeeId?.employeeId}</p>
-              <p><strong>Name:</strong> {p.employeeId?.name}</p>
+              <p><strong>Employee Name:</strong> {p.employeeName}</p>
+              <p><strong>Employee ID:</strong> {p.formattedEmployeeId}</p>
+              <p><strong>Designation:</strong> {p.designation}</p>
               <p><strong>Month:</strong> {p.month} {p.year}</p>
-              <p><strong>Net Salary:</strong> ₹{p.netSalary}</p>
+              <p><strong>Net Salary:</strong> ₹{p.netSalary?.toLocaleString()}</p>
               <p><strong>Status:</strong> {p.status}</p>
 
               <button

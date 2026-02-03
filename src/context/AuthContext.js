@@ -1,11 +1,14 @@
-// src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState } from "react";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user")) || null);
-  const [token, setToken] = useState(() => localStorage.getItem("token") || null);
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem("user")) || null
+  );
+  const [token, setToken] = useState(() =>
+    localStorage.getItem("token") || null
+  );
 
   const login = (userData, jwtToken) => {
     setUser(userData);
@@ -21,12 +24,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
-  useEffect(() => {
-    // optional: check token validity in future
-  }, []);
+  const isAuthenticated = !!user && !!token;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

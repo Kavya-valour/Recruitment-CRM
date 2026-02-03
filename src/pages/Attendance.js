@@ -9,7 +9,7 @@ const AttendancePage = () => {
   // Fetch attendance once on mount
   useEffect(() => {
     getAttendance();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="p-6 space-y-6">

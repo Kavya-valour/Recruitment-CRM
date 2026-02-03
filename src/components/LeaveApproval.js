@@ -6,7 +6,7 @@ const LeaveApproval = () => {
 
   useEffect(() => {
     getLeaves();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pendingLeaves = leaves.filter((l) => l.status === "Pending");
 

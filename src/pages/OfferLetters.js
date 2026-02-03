@@ -1,90 +1,184 @@
-import React, { useContext, useEffect } from "react";
-import { OfferLetterContext } from "../context/OfferLetterContext";
-import OfferLetterForm from "../components/OfferLetterForm";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-const OfferLetters = () => {
-  const { offers, getOffers, deleteOffer, loading } = useContext(OfferLetterContext);
+const OfferLetter = () => {
+  const [form, setForm] = useState({
+    employeeName: "",
+    relationPrefix: "S/O",
+    fatherName: "",
+    employeeAddress: "",
+    designation: "",
+    joiningDate: "",
+    basic: "",
+    hra: "",
+    da: "",
+    specialAllowance: "",
+    offeredCtc: 1700000, // default CTC
+    tds: ""
+  });
 
+  // Auto-calculate salary whenever CTC changes
   useEffect(() => {
-    getOffers();
-  }, []);
+    const ctc = Number(form.offeredCtc) || 0;
+    const basic = ctc * 0.4;
+    const hra = basic * 0.5;
+    const da = basic * 0.035;
+    const employerPF = basic * 0.12;
+    const specialAllowance = ctc - (basic + hra + da + employerPF);
+    const tds = ctc * 0.04;
 
-  if (loading) return <p className="p-6 text-gray-500">Loading...</p>;
+    setForm(prev => ({
+      ...prev,
+      basic: Math.round(basic),
+      hra: Math.round(hra),
+      da: Math.round(da),
+      specialAllowance: Math.round(specialAllowance),
+      tds: Math.round(tds),
+    }));
+  }, [form.offeredCtc]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Convert address textarea to array
+    const addressArray = form.employeeAddress
+      .split("\n")
+      .filter(line => line.trim() !== "");
+
+    const payload = {
+      ...form,
+      employeeAddress: addressArray,
+      basic: Number(form.basic),
+      hra: Number(form.hra),
+      da: Number(form.da),
+      specialAllowance: Number(form.specialAllowance),
+      offeredCtc: Number(form.offeredCtc),
+      tds: Number(form.tds)
+    };
+
+    try {
+      const res = await axios.post("/api/offer", payload);
+      alert("Offer Letter Generated Successfully ✅");
+      window.open(res.data.pdfUrl, "_blank");
+    } catch (err) {
+      alert("Error: " + err.response?.data?.message || err.message);
+    }
+  };
+
+  const totalCTC = Number(form.basic) + Number(form.hra) + Number(form.da) + Number(form.specialAllowance);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Offer Letter Management</h1>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <h2 className="text-2xl font-bold text-center mb-6">Create Offer Letter</h2>
 
-      {/* Form to generate new offer letters */}
-      <OfferLetterForm />
+      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
 
-      {/* Table of existing offer letters */}
-      <div className="mt-6 bg-white rounded shadow overflow-x-auto">
-        <h3 className="text-lg font-semibold px-4 pt-4">Generated Offer Letters</h3>
-        <table className="min-w-full border border-gray-300 mt-2 text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-3 py-2 border">#</th>
-              <th className="px-3 py-2 border">Candidate Name</th>
-              <th className="px-3 py-2 border">Designation</th>
-              <th className="px-3 py-2 border">Joining Date</th>
-              <th className="px-3 py-2 border">Offered CTC (₹)</th>
-              <th className="px-3 py-2 border">PDF</th>
-              <th className="px-3 py-2 border">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {offers.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="7"
-                  className="text-center text-gray-500 py-4 border"
-                >
-                  No offer letters found.
-                </td>
-              </tr>
-            ) : (
-              offers.map((offer, idx) => (
-                <tr key={offer._id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 border text-center">{idx + 1}</td>
-                  <td className="px-3 py-2 border">{offer.employeeName}</td>
-                  <td className="px-3 py-2 border">{offer.designation}</td>
-                  <td className="px-3 py-2 border">
-                    {new Date(offer.joiningDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2 border text-right">
-                    ₹{offer.offeredCtc}
-                  </td>
-                  <td className="px-3 py-2 border text-center">
-                    {offer.pdfUrl ? (
-                      <a
-                        href={`http://localhost:5000${offer.pdfUrl}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        View PDF
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 border text-center">
-                    <button
-                      onClick={() => deleteOffer(offer._id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+        {/* Left Column: Form */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Employee Info */}
+          <div className="bg-white p-4 rounded shadow space-y-4">
+            <h3 className="font-semibold text-gray-700">Employee Information</h3>
+
+            <label>Employee Name</label>
+            <input
+              name="employeeName"
+              value={form.employeeName}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+
+            <label>Relation Prefix</label>
+            <select
+              name="relationPrefix"
+              value={form.relationPrefix}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            >
+              <option value="S/O">S/O</option>
+              <option value="D/O">D/O</option>
+              <option value="W/O">W/O</option>
+            </select>
+
+            <label>Father / Guardian Name</label>
+            <input
+              name="fatherName"
+              value={form.fatherName}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+
+            <label>Employee Address</label>
+            <textarea
+              name="employeeAddress"
+              rows="4"
+              placeholder="Line 1&#10;Line 2&#10;Line 3"
+              value={form.employeeAddress}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            ></textarea>
+
+            <label>Designation</label>
+            <input
+              name="designation"
+              value={form.designation}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+
+            <label>Joining Date</label>
+            <input
+              type="date"
+              name="joiningDate"
+              value={form.joiningDate}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+
+            {/* Salary input */}
+            <label>CTC (Annual)</label>
+            <input
+              name="offeredCtc"
+              type="number"
+              value={form.offeredCtc}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+          </div>
+        </div>
+
+        {/* Right Column: Dashboard Summary */}
+        <aside className="bg-white rounded shadow p-6 flex flex-col justify-between h-fit">
+          <h3 className="text-lg font-semibold text-center mb-4">CTC Summary</h3>
+          <div className="space-y-2 text-gray-700">
+            <p><strong>Basic:</strong> ₹{form.basic}</p>
+            <p><strong>HRA:</strong> ₹{form.hra}</p>
+            <p><strong>DA:</strong> ₹{form.da}</p>
+            <p><strong>Special Allowance:</strong> ₹{form.specialAllowance}</p>
+            <p><strong>TDS:</strong> ₹{form.tds}</p>
+          </div>
+          <hr className="my-3" />
+          <div className="text-center">
+            <p className="text-xl font-bold text-green-600">₹ {totalCTC.toLocaleString()}</p>
+            <p className="text-gray-500 text-sm">Total CTC / Year</p>
+          </div>
+        </aside>
+
+        {/* Submit Button */}
+        <div className="md:col-span-3 text-center mt-4">
+          <button
+            type="submit"
+            className="px-8 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Generate Offer Letter PDF
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default OfferLetters;
+export default OfferLetter;
