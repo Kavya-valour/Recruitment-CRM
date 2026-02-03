@@ -1,11 +1,14 @@
 import express from "express";
 import multer from "multer";
+import { protect } from "../middleware/authMiddleware.js";
 import {
   getEmployees,
   getEmployeeById,
+  getEmployeeByLookup,
   addEmployee,
   updateEmployee,
   deleteEmployee,
+  exportEmployeesToExcel,
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -19,8 +22,9 @@ const upload = multer({ storage });
 
 // Routes
 router.get("/", getEmployees);
+router.get("/lookup", getEmployeeByLookup);
 router.get("/:id", getEmployeeById);
-router.post("/", addEmployee);
+router.post("/", protect, addEmployee);
 
 // ✅ Update employee with education & experience file support
 router.put(
@@ -33,5 +37,6 @@ router.put(
 );
 
 router.delete("/:id", deleteEmployee);
+router.get("/export/excel", exportEmployeesToExcel);
 
 export default router;

@@ -4,7 +4,7 @@ import {
   addPayroll,
   updatePayrollStatus,
   deletePayroll,
-  generatePayslipPDF, // ✅ Import added
+  generatePayslipPDF,
 } from "../controllers/payrollController.js";
 
 const router = express.Router();
@@ -12,7 +12,7 @@ const router = express.Router();
 router.get("/", getPayrolls);
 router.post("/", addPayroll);
 router.put("/:id", updatePayrollStatus);
+router.get("/:id/payslip", generatePayslipPDF);
 router.delete("/:id", deletePayroll);
-router.get("/:id/payslip", generatePayslipPDF); // ✅ Add route
 
 export default router;

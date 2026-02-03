@@ -1,5 +1,6 @@
 import express from "express";
-import { getLeaves, applyLeave, updateLeave, deleteLeave } from "../controllers/leaveController.js";
+import Leave from "../models/Leave.js";
+import { getLeaves, applyLeave, updateLeave, deleteLeave, getLeaveCalendar } from "../controllers/leaveController.js";
 
 const router = express.Router();
 
@@ -8,6 +9,9 @@ router.get("/", getLeaves);
 router.post("/", applyLeave);
 router.put("/:id", updateLeave);
 router.delete("/:id", deleteLeave);
+
+// Leave calendar route
+router.get("/calendar/data", getLeaveCalendar);
 
 // ✅ Add this new route
 router.get("/:id", async (req, res) => {

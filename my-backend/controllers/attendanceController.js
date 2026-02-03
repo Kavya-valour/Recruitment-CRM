@@ -3,6 +3,7 @@ import Employee from "../models/Employee.js";
 import csvParser from "csv-parser";
 import fs from "fs";
 import path from "path";
+import { validateAttendanceData } from "../utils/validators.js";
 
 // Helper to validate attendance object
 const validateAttendance = async (att) => {
@@ -33,27 +34,161 @@ const validateAttendance = async (att) => {
 export const addAttendance = async (req, res) => {
   try {
     const { employeeId, date, status, inTime, outTime } = req.body;
-    const errors = await validateAttendance({ employeeId, date, status, inTime, outTime });
 
-    if (errors.length > 0) return res.status(400).json({ error: errors.join(" ") });
+    // Validate input data
+    const validationErrors = validateAttendanceData({ employeeId, date, status, inTime, outTime });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: validationErrors
+      });
+    }
 
-    const record = new Attendance({ employeeId, date, status, inTime, outTime });
+    // Check for duplicate attendance entry
+    const existing = await Attendance.findOne({ employeeId, date });
+    if (existing) {
+      return res.status(400).json({ message: "Attendance already marked for this employee on this date" });
+    }
+
+    const record = new Attendance({
+      employee_id: employeeId,
+      employeeId,
+      date,
+      status,
+      inTime,
+      outTime,
+    });
     const saved = await record.save();
-    res.status(201).json(saved);
+    res.status(201).json({
+      message: "Attendance marked successfully",
+      attendance: saved
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to add attendance." });
+    console.error("Error adding attendance:", err);
+    res.status(500).json({ message: err.message || "Internal server error" });
   }
 };
 
 // ------------------- Get all attendance -------------------
 export const getAttendance = async (req, res) => {
   try {
-    const records = await Attendance.find().populate("employeeId", "name employee_id");
+    const { employeeId, date } = req.query;
+
+    const filter = {};
+    if (employeeId) filter.employeeId = employeeId;
+    if (date) {
+      // match date for the whole day
+      const d = new Date(date);
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      filter.date = { $gte: start, $lt: end };
+    }
+
+    const records = await Attendance.find(filter).populate("employeeId", "name employee_id");
     res.json(records);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch attendance." });
+  }
+};
+
+// ------------------- Update attendance -------------------
+export const updateAttendance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { employeeId, date, status, inTime, outTime } = req.body;
+
+    // Validate input data
+    const validationErrors = validateAttendanceData({ employeeId, date, status, inTime, outTime });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ message: "Validation failed", errors: validationErrors });
+    }
+
+    const attendance = await Attendance.findById(id);
+    if (!attendance) return res.status(404).json({ message: "Attendance record not found" });
+
+    // If date or employee changed, ensure no duplicate for that employee on that date
+    const newDate = date ? new Date(date) : attendance.date;
+    const start = new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
+    const end = new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate() + 1);
+
+    const duplicate = await Attendance.findOne({
+      employeeId: employeeId || attendance.employeeId,
+      date: { $gte: start, $lt: end },
+      _id: { $ne: id }
+    });
+    if (duplicate) {
+      return res.status(400).json({ message: "Another attendance entry exists for this employee on the given date" });
+    }
+
+    attendance.employeeId = employeeId || attendance.employeeId;
+    attendance.date = date ? new Date(date) : attendance.date;
+    attendance.status = status || attendance.status;
+    attendance.inTime = inTime !== undefined ? inTime : attendance.inTime;
+    attendance.outTime = outTime !== undefined ? outTime : attendance.outTime;
+
+    const saved = await attendance.save();
+    res.json({ message: "Attendance updated", attendance: saved });
+  } catch (err) {
+    console.error("Error updating attendance:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ------------------- Get Monthly Attendance Report -------------------
+export const getMonthlyReport = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    if (!month || !year) {
+      return res.status(400).json({ error: "Month and year are required" });
+    }
+
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0);
+
+    // Get all attendance records for the month
+    const attendanceRecords = await Attendance.find({
+      date: { $gte: startOfMonth, $lte: endOfMonth }
+    }).populate("employeeId", "name employee_id");
+
+    // Get all employees
+    const employees = await Employee.find({ status: "Active" });
+
+    // Create a map of employee attendance
+    const report = employees.map(employee => {
+      const employeeAttendance = attendanceRecords.filter(
+        record => record.employeeId && record.employeeId._id.toString() === employee._id.toString()
+      );
+
+      const presentDays = employeeAttendance.filter(r => r.status === "Present").length;
+      const absentDays = employeeAttendance.filter(r => r.status === "Absent").length;
+      const leaveDays = employeeAttendance.filter(r => r.status === "Leave").length;
+      const totalWorkingDays = presentDays + absentDays + leaveDays;
+
+      return {
+        employeeId: employee.employee_id,
+        name: employee.name,
+        totalWorkingDays,
+        presentDays,
+        absentDays,
+        leaveDays,
+        attendancePercentage: totalWorkingDays > 0 ? ((presentDays / totalWorkingDays) * 100).toFixed(2) : 0
+      };
+    });
+
+    res.json({
+      month,
+      year,
+      report,
+      summary: {
+        totalEmployees: employees.length,
+        averageAttendance: report.length > 0 ? (report.reduce((sum, emp) => sum + parseFloat(emp.attendancePercentage), 0) / report.length).toFixed(2) : 0
+      }
+    });
+
+  } catch (error) {
+    console.error("Monthly report error:", error);
+    res.status(500).json({ error: "Failed to generate monthly report" });
   }
 };
 
@@ -76,7 +211,7 @@ export const uploadCsv = async (req, res) => {
         const rowErrors = await validateAttendance({ employeeId, date, status, inTime, outTime });
 
         if (rowErrors.length > 0) {
-          errors.push(`Row for Employee ${employeeId}: ${rowErrors.join(" ")}`);
+          errors.push(`Row for Employee ID ${employeeId}: ${rowErrors.join(" ")}`);
           continue;
         }
 
@@ -85,7 +220,7 @@ export const uploadCsv = async (req, res) => {
           await attendance.save();
           created++;
         } catch (err) {
-          errors.push(`Failed to save row for Employee ${employeeId}.`);
+          errors.push(`Failed to save row for Employee ID ${employeeId}.`);
         }
       }
 
