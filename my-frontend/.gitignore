@@ -22,17 +22,3 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# monorepo
-**/node_modules/
-my-backend/.env
-my-backend/.env.*
-my-frontend/.env
-my-frontend/.env.*
-my-backend/uploads/
-uploads/
-my-frontend/build/
-my-frontend/dist/
-my-backend/fixLeaveBalance.js
-my-backend/checkLeaveHistory.js
-*.log

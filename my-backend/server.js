@@ -21,11 +21,21 @@ connectDB();
 const app = express();
 
 // ✅ Updated CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5000",
+  "https://recruitment-crm.vercel.app",
+  process.env.FRONTEND_URL, // Add production frontend URL via env var
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://recruitment-crm.vercel.app",
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true
 }));
