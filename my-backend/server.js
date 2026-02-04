@@ -24,7 +24,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5000",
-  "https://recruitment-crm.vercel.app",
+  "https://recruitment-crm-lyart.vercel.app",
   process.env.FRONTEND_URL, // Add production frontend URL via env var
 ];
 
