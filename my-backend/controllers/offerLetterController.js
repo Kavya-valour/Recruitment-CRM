@@ -1,5 +1,5 @@
 import OfferLetter from "../models/OfferLetter.js";
-import pdfGenerator from "../utils/pdfGenerator.js";
+import { generateOfferLetter } from "../utils/pdfGenerator.js";
 
 export const createOfferLetter = async (req, res) => {
   try {
@@ -22,25 +22,29 @@ export const createOfferLetter = async (req, res) => {
     if (!employeeName || !designation || !joiningDate || !offeredCtc) {
       return res.status(400).json({ message: "Required fields missing" });
     }
+    const safeNumber = (val) => {
+      const num = Number(val);
+      return isNaN(num) ? 0 : num;
+    };
 
     // ✅ Convert numeric fields to numbers (avoid string issues)
     const payload = {
       employeeName,
       relationPrefix,
       fatherName,
-      employeeAddress, 
+      employeeAddress,
       designation,
       joiningDate,
-      basic: Number(basic) || 0,
-      hra: Number(hra) || 0,
-      da: Number(da) || 0,
-      specialAllowance: Number(specialAllowance) || 0,
-      offeredCtc: Number(offeredCtc) || 0,
-      tds: Number(tds) || 0,
+      basic: safeNumber(basic),
+      hra: safeNumber(hra),
+      da: safeNumber(da),
+      specialAllowance: safeNumber(specialAllowance),
+      offeredCtc: safeNumber(offeredCtc),
+      tds: safeNumber(tds),
     };
 
     // ✅ Generate PDF
-    const relativePdfPath = await pdfGenerator.generateOfferLetter(payload);
+    const relativePdfPath = await generateOfferLetter(payload);
 
     if (!relativePdfPath) {
       return res.status(500).json({ message: "PDF generation failed" });
@@ -57,13 +61,22 @@ export const createOfferLetter = async (req, res) => {
       employeeAddress,
       designation,
       joiningDate,
-      offeredCtc: Number(offeredCtc),
+      basic: safeNumber(basic),
+      hra: safeNumber(hra),
+      da: safeNumber(da),
+      specialAllowance: safeNumber(specialAllowance),
+      offeredCtc: safeNumber(offeredCtc),
+      tds: safeNumber(tds),
       pdfUrl: fullPdfUrl,
       status: "Generated",
     });
-
+    
     const savedOffer = await offer.save();
-    res.status(201).json(savedOffer);
+    res.status(201).json({
+      success: true,
+      pdfUrl: fullPdfUrl,
+      data: savedOffer,
+    });
 
   } catch (error) {
     console.error("Error creating offer letter:", error);
@@ -105,7 +118,7 @@ export const regenerateOfferLetter = async (req, res) => {
     };
 
     // Generate new PDF
-    const relativePdfPath = await pdfGenerator.generateOfferLetter(data);
+    const relativePdfPath = await generateOfferLetter(data);
     if (!relativePdfPath) {
       return res.status(500).json({ message: "PDF regeneration failed" });
     }

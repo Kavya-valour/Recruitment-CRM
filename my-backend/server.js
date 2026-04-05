@@ -1,7 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import bodyParser from "body-parser";
 import connectDB from "./config/db.js";
 import path from "path";
 
@@ -40,10 +39,10 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(bodyParser.json());
+app.use(express.json());
 
 // ✅ Serve uploaded files correctly (important for Render)
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Routes
 app.use("/api/employees", employeeRoutes);

@@ -2,9 +2,17 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import puppeteer from "puppeteer";
 
+import { generateOfferHTML } from "./offerTemplate.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const logoPath = path.join(process.cwd(), "logo.png");
+
+const logoBase64 = fs.existsSync(logoPath)
+  ? fs.readFileSync(logoPath, { encoding: "base64" })
+  : null;
 
 // Ensure directory exists
 const ensureDir = (dir) => {
@@ -156,129 +164,48 @@ export const generateOfferLetter = async (data) => {
     const offerDir = path.join(uploadDir, "offerLetters");
     ensureDir(offerDir);
 
-    const safeName = data.employeeName.replace(/\s+/g, "_");
-    const fileName = `${safeName}_OfferLetter.pdf`;
+    const safeName = (data.employeeName || "Employee")
+      .replace(/\s+/g, "_")        // spaces → _
+      .replace(/[^a-zA-Z0-9_]/g, ""); // remove special chars
+
+    const fileName = `Offer_Letter-${safeName}.pdf`;
     const filePath = path.join(offerDir, fileName);
 
-    const doc = new PDFDocument({ margin: 50 });
-    const stream = fs.createWriteStream(filePath);
-    doc.pipe(stream);
-
-    // Company Header
-    doc.fontSize(18).fillColor("#000").text("Valour Technologies Pvt Ltd", { align: "center" });
-    doc.fontSize(10).fillColor("#444").text("No. 502, Vcollab, Capital Park, Image Gardens road,", { align: "center" });
-    doc.text("Madhapur, Hyderabad, Telangana 500081", { align: "center" });
-    doc.moveDown(2);
-
-    // Candidate Details
-    doc.fontSize(12).fillColor("#000");
-    doc.text(`${data.employeeName}`);
-    doc.text(`${data.relationPrefix} ${data.fatherName}`);
-    data.employeeAddress.forEach(line => doc.text(line));
-    doc.moveDown(1.5);
-
-    // Subject & Date
-    doc.font("Helvetica-Bold").text("Sub: Letter of Offer and Terms of Employment");
-    doc.moveDown(1);
-
-    doc.font("Helvetica").text(`Date: ${new Date().toLocaleDateString()}`, { align: "right" });
-    doc.moveDown(1.5);
-
-    // Greeting
-    doc.text(`Dear ${data.employeeName},`);
-    doc.moveDown(1);
-
-    // Body
-    doc.text(
-      `With reference to your interview with us, we are pleased to offer you the position of ` +
-      `${data.designation} at our Company as per the terms & conditions discussed with you.`
-    );
-    doc.moveDown(1);
-
-    doc.text(
-      `We look forward to you joining us at the earliest. We are certain that you will find challenge, satisfaction ` +
-      `and opportunity in your association with the Company. If you are agreeable to the said terms, you are requested ` +
-      `to report for duty on ${new Date(data.joiningDate).toLocaleDateString()}.`
-    );
-    doc.moveDown(1.5);
-
-    // Documents List
-    doc.text("On the aforesaid date of joining, you are required to submit:");
-    doc.text("1. Academic / Professional certificates and experience proofs.");
-    doc.text("2. Two passport sized colour photographs.");
-    doc.text("3. Aadhaar & PAN photocopies.");
-    doc.text("4. No Dues / Clearance letter from previous employer (if applicable).");
-    doc.text("5. Form 16 / Investment Declaration (if applicable).");
-    doc.moveDown(1.5);
-
-    // Terms & Conditions Section
-    doc.font("Helvetica-Bold").text("Terms & Conditions of Employment:");
-    doc.moveDown(0.5);
-    doc.font("Helvetica").text(
-      `• You will be appointed as ${data.designation}.\n` +
-      `• A probation period of 3 months applies.\n` +
-      `• Work location: Remote, subject to company & project requirements.\n` +
-      `• Confidentiality & Non-Disclosure must be strictly followed.\n` +
-      `• Either party may terminate employment with 30 days notice.\n`
-    );
-    doc.moveDown(1.5);
-
-    // Salary Table
-    const monthly = (amount) => Math.round(amount / 12).toLocaleString();
-
-    doc.font("Helvetica-Bold").text("Proposed CTC for the Year");
-    doc.moveDown(1);
-
-    const salaryRows = [
-      ["Basic Salary", data.basic, monthly(data.basic)],
-      ["House Rent Allowance (HRA)", data.hra, monthly(data.hra)],
-      ["Dearness Allowance (DA)", data.da, monthly(data.da)],
-      ["Special Allowance", data.specialAllowance, monthly(data.specialAllowance)],
-    ];
-
-    salaryRows.forEach(([label, annual, mn]) => {
-      doc.font("Helvetica").text(`${label}   ${annual.toLocaleString()} pa   ${mn} pm`);
+    const html = generateOfferHTML({
+      ...data,
+      logoBase64
     });
 
-    doc.moveDown(1);
-    doc.text(`Total Cost to Company: ₹${data.offeredCtc.toLocaleString()} per annum`);
-    doc.moveDown(1);
-
-    const guaranteed = data.offeredCtc - data.tds;
-    doc.text(`TDS deduction: ₹${data.tds.toLocaleString()} pa`);
-    doc.text(`Net Pay (approx): ₹${guaranteed.toLocaleString()} pa`);
-    doc.moveDown(2);
-
-    // Acceptance Section
-    doc.font("Helvetica-Bold").text("Acceptance & Acknowledgment:");
-    doc.moveDown(0.5);
-    doc.font("Helvetica").text(
-      `I, ${data.employeeName}, hereby confirm acceptance of the offer and agree to the terms stated above.`
-    );
-    doc.moveDown(2);
-    doc.text("Signature: ___________________________");
-    doc.text("Date: _______________________________");
-    doc.moveDown(2);
-
-    // Footer
-    doc.fontSize(10).fillColor("gray").text(
-      "This is a computer-generated document and does not require a signature.",
-      { align: "center" }
-    );
-
-    // Finalize
-    doc.end();
-    await new Promise((resolve, reject) => {
-      stream.on("finish", resolve);
-      stream.on("error", reject);
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
     });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    await page.pdf({
+      path: filePath,
+      format: "A4",
+      printBackground: true,
+
+      /* 🔥 FINAL PERFECT MARGINS */
+      margin: {
+        top: "40px",     // space for logo + header
+        bottom: "90px",   // bottom breathing space
+        left: "70px",
+        right: "70px"
+      }
+    });
+
+    await browser.close();
 
     return `/uploads/offerLetters/${fileName}`;
+
   } catch (error) {
-    console.error("Offer Letter PDF generation error:", error);
+    console.error("HTML PDF generation error:", error);
     return null;
   }
 };
-
 
 export default { generatePayslip, generateOfferLetter };
