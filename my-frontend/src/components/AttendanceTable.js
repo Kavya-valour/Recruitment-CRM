@@ -10,6 +10,7 @@ const AttendanceTable = ({ records = [], reload }) => {
   const [uploadResult, setUploadResult] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const [manual, setManual] = useState({
     employeeId: "",
@@ -205,20 +206,27 @@ const AttendanceTable = ({ records = [], reload }) => {
                 </td>
               </tr>
             ) : (
-              records.map((r) => (
-                <tr key={r._id} className="border-t hover:bg-gray-50">
-                  <td className="p-2">{new Date(r.date).toLocaleDateString()}</td>
-                  <td className="p-2">{r.employeeId?.name || r.employeeId}</td>
-                  <td
-                    className={`p-2 font-semibold ${
-                      r.status === "Present"
-                        ? "text-green-600"
-                        : r.status === "Absent"
-                        ? "text-red-500"
-                        : "text-yellow-500"
-                    }`}
-                  >
-                    {r.status || "-"}
+              [...records] // ✅ clone
+                .sort((a, b) => new Date(b.date) - new Date(a.date)) // ✅ latest first
+                .slice(0, visibleCount) // ✅ limit rows
+                .map((r) => (
+                  <tr key={r._id} className="border-t hover:bg-gray-50">
+                    <td className="p-2">
+                      {new Date(r.date).toLocaleDateString()}
+                    </td>
+                    <td className="p-2">
+                      {r.employeeId?.name || r.employeeId}
+                    </td>
+                    <td
+                      className={`p-2 font-semibold ${
+                        r.status === "Present"
+                          ? "text-green-600"
+                          : r.status === "Absent"
+                          ? "text-red-500"
+                          : "text-yellow-500"
+                      }`}
+                    >
+                      {r.status || "-"}
                   </td>
                   <td className="p-2">{r.inTime || "-"}</td>
                   <td className="p-2">{r.outTime || "-"}</td>
@@ -228,6 +236,28 @@ const AttendanceTable = ({ records = [], reload }) => {
           </tbody>
         </table>
       </div>
+
+      {/* ✅ Show More / Show Less */}
+      {records.length > 10 && (
+        <div className="mt-4 text-center">
+          {visibleCount < records.length ? (
+            <button
+              onClick={() => setVisibleCount((prev) => prev + 10)}
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Show More
+            </button>
+          ) : (
+            <button
+              onClick={() => setVisibleCount(10)}
+              className="bg-gray-500 text-white px-4 py-2 rounded"
+            >
+              Show Less
+            </button>
+          )}
+        </div>
+      )}
+
     </div>
   );
 };

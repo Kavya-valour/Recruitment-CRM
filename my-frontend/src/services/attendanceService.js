@@ -16,7 +16,12 @@ export const uploadCsv = async (file) => {
     return response.data; // { created: number } or { error: string }
   } catch (error) {
     console.error("CSV upload failed:", error.response?.data || error.message);
-    return { error: error.response?.data?.error || "Upload failed" };
+    return {
+      error:
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      "Upload failed",
+    };
   }
 };
 
@@ -75,3 +80,49 @@ export const deleteAttendance = async (id) => {
   }
 };
 
+// ---------------- Get Weekly / Monthly / Yearly Report ----------------
+export const getAttendanceReport = async (params) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/attendance/report", {
+    params,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+// ---------------- Download Report as Excel ----------------
+export const downloadAttendanceReportExcel = async (params) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get("/attendance/report/export", {
+      params,
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `attendance-${params.type || "monthly"}.xlsx`
+    );
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Download failed:", error.response?.data || error.message);
+    throw error;
+  }
+};

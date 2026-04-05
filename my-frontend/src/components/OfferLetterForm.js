@@ -4,8 +4,10 @@ import api from "../services/api";
 const OfferLetterDashboardForm = () => {
   const [employees, setEmployees] = useState([]);
   const [ctc, setCtc] = useState(1700000);
+  const [loading, setLoading] = useState(false);   
+  const [pdfUrl, setPdfUrl] = useState("");        
   const [form, setForm] = useState({
-    relationPrefix: "S/O",
+    relationPrefix: "",   // default N/A
     employeeName: "",
     fatherName: "",
     employeeAddress: "",
@@ -62,9 +64,16 @@ const OfferLetterDashboardForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     const payload = {
       ...form,
-      employeeAddress: form.employeeAddress.split("\n"),
+      relationPrefix: form.relationPrefix || "",   // N/A → empty
+      fatherName: form.relationPrefix ? form.fatherName : "",
+      employeeAddress: form.employeeAddress
+        .split("\n")
+        .map(line => line.trim())
+        .filter(line => line !== ""),
       offeredCtc: calculateCTC(),
       basic: Number(form.basic),
       hra: Number(form.hra),
@@ -74,11 +83,16 @@ const OfferLetterDashboardForm = () => {
     };
 
     try {
-      const res = await api.post("/offer-letters", payload);
+      const res = await api.post("/offer", payload);
+
+      setPdfUrl(res.data.pdfUrl);   // ✅ preview
       window.open(res.data.pdfUrl, "_blank");
+
       alert("✅ Offer letter generated successfully");
     } catch {
       alert("❌ Failed to generate offer letter");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,12 +126,19 @@ const OfferLetterDashboardForm = () => {
                 <label className="text-sm text-gray-600">Relation Prefix</label>
                 <select
                   value={form.relationPrefix}
-                  onChange={(e) => setForm({ ...form, relationPrefix: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      relationPrefix: e.target.value,
+                      fatherName: e.target.value ? form.fatherName : "", // clear if N/A
+                    })
+                  }
                   className="w-full border rounded p-2 mt-1"
                 >
-                  <option>S/O</option>
-                  <option>D/O</option>
-                  <option>W/O</option>
+                  <option value="">N/A</option>
+                  <option value="S/O">S/O</option>
+                  <option value="D/O">D/O</option>
+                  <option value="W/O">W/O</option>
                 </select>
               </div>
               <div className="col-span-2">
@@ -125,6 +146,7 @@ const OfferLetterDashboardForm = () => {
                 <input
                   className="w-full border rounded p-2 mt-1"
                   value={form.fatherName}
+                  disabled={!form.relationPrefix}   // ✅ THIS LINE ADDED
                   onChange={(e) => setForm({ ...form, fatherName: e.target.value })}
                 />
               </div>
@@ -213,10 +235,17 @@ const OfferLetterDashboardForm = () => {
         <div className="md:col-span-3 text-center mt-4">
           <button
             type="submit"
+            disabled={loading}
             className="px-8 py-3 bg-blue-600 text-white rounded-md text-md hover:bg-blue-700"
           >
-            Generate Offer Letter
+            {loading ? "Generating..." : "Generate Offer Letter"}
           </button>
+          {pdfUrl && (
+            <div className="mt-6 col-span-3">
+              <h3 className="font-semibold mb-2">Preview</h3>
+              <iframe src={pdfUrl} className="w-full h-[500px] border rounded"></iframe>
+            </div>
+          )}
         </div>
       </form>
     </div>

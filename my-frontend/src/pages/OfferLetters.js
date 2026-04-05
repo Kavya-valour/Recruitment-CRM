@@ -4,7 +4,7 @@ import axios from "axios";
 const OfferLetter = () => {
   const [form, setForm] = useState({
     employeeName: "",
-    relationPrefix: "S/O",
+    relationPrefix: "",   // default N/A
     fatherName: "",
     employeeAddress: "",
     designation: "",
@@ -47,7 +47,8 @@ const OfferLetter = () => {
     // Convert address textarea to array
     const addressArray = form.employeeAddress
       .split("\n")
-      .filter(line => line.trim() !== "");
+      .map(line => line.trim())
+      .filter(line => line !== "");
 
     const payload = {
       ...form,
@@ -95,9 +96,16 @@ const OfferLetter = () => {
             <select
               name="relationPrefix"
               value={form.relationPrefix}
-              onChange={handleChange}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  relationPrefix: e.target.value,
+                  fatherName: e.target.value ? form.fatherName : "", // clear if N/A
+                })
+              }
               className="w-full border rounded p-2"
             >
+              <option value="">N/A</option>
               <option value="S/O">S/O</option>
               <option value="D/O">D/O</option>
               <option value="W/O">W/O</option>
@@ -107,6 +115,7 @@ const OfferLetter = () => {
             <input
               name="fatherName"
               value={form.fatherName}
+              disabled={!form.relationPrefix}
               onChange={handleChange}
               className="w-full border rounded p-2"
             />

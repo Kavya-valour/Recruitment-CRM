@@ -21,12 +21,8 @@ export const OfferLetterProvider = ({ children }) => {
   };
 
   // Add a new offer
-  const addOffer = async (offerData) => {
-    try {
-      setOffers((prev) => [offerData, ...prev]); // Optimistic update
-    } catch (err) {
-      console.error("Error adding offer:", err);
-    }
+  const addOffer = (offerData) => {
+    setOffers((prev) => [offerData, ...prev]);
   };
 
   // Delete an offer

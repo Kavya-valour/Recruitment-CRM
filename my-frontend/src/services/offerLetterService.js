@@ -1,31 +1,26 @@
 import api from "./api";
 
+/* ================= OFFER LETTER APIs ================= */
+
+// 🔹 Get all offer letters
 export const getAllOffers = async () => {
-  try {
-    const res = await api.get("/offer");
-    return res.data;
-  } catch (err) {
-    console.error("Error fetching offers:", err);
-    throw err;
-  }
+  const res = await api.get("/offer");
+  return res.data;
 };
 
-export const createOffer = async (record) => {
-  try {
-    const res = await api.post("/offer", record);
-    return res.data;
-  } catch (err) {
-    console.error("Error creating offer:", err);
-    throw err;
-  }
+// 🔹 Create new offer letter
+export const createOffer = async (data) => {
+  const res = await api.post("/offer", data);
+  return res.data;
 };
 
+// 🔹 Delete offer letter
 export const deleteOffer = async (id) => {
-  try {
-    const res = await api.delete(`/offer/${id}`);
-    return res.data;
-  } catch (err) {
-    console.error("Error deleting offer:", err);
-    throw err;
-  }
+  const res = await api.delete(`/offer/${id}`);
+  return res.data;
+};
+
+export const regenerateOffer = async (id) => {
+  const res = await api.post(`/offer/regenerate/${id}`);
+  return res.data;
 };
