@@ -108,7 +108,7 @@ const generateAttendanceReportData = async ({ type, year, month, week }) => {
 
     const attendancePercentage =
       totalWorkingDays > 0
-        ? (presentDays / totalWorkingDays) * 100
+        ? ((presentDays / totalWorkingDays) * 100).toFixed(2)
         : 0;
 
     return {
