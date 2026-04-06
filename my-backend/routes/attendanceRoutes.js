@@ -21,7 +21,7 @@ router.get("/report", protect, authorize("admin", "hr"), getAttendanceReport);
 router.get("/report/export", protect, authorize("admin", "hr"), exportAttendanceReportExcel);
 
 // ✅ CREATE
-router.post("/", protect, authorize("admin", "hr"), addAttendance);
+router.post("/", protect, authorize("employee", "admin", "hr"), addAttendance);
 
 // ✅ UPLOAD
 router.post(

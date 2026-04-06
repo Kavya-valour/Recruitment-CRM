@@ -1,26 +1,25 @@
 import api from "./api";
 
-/* ================= OFFER LETTER APIs ================= */
-
-// 🔹 Get all offer letters
+// GET
 export const getAllOffers = async () => {
-  const res = await api.get("/offer");
+  const res = await api.get("/offerletters");
   return res.data;
 };
 
-// 🔹 Create new offer letter
+// CREATE
 export const createOffer = async (data) => {
-  const res = await api.post("/offer", data);
+  const res = await api.post("/offerletters", data);
   return res.data;
 };
 
-// 🔹 Delete offer letter
+// DELETE
 export const deleteOffer = async (id) => {
-  const res = await api.delete(`/offer/${id}`);
+  const res = await api.delete(`/offerletters/${id}`);
   return res.data;
 };
 
+// REGENERATE
 export const regenerateOffer = async (id) => {
-  const res = await api.post(`/offer/regenerate/${id}`);
+  const res = await api.put(`/offerletters/${id}/regenerate`);
   return res.data;
 };
